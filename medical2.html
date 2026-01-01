@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Management System - Enhanced (Admins, Printing, Searchable Sales, AI)</title>
+    <style>
+        /* --- (styles mostly copied from original with small additions) --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px 30px; display:flex; justify-content:space-between; align-items:center; }
+        .header h1 { font-size: 1.6em; margin-bottom: 5px; }
+        .header .header-right { display:flex; gap:12px; align-items:center; }
+        .tabs { display: flex; background: #f8f9fa; border-bottom: 2px solid #e9ecef; overflow-x: auto; }
+        .tab { padding: 16px 22px; cursor: pointer; border: none; background: none; font-size: 1em; font-weight: 600; color: #6c757d; transition: all 0.3s; white-space: nowrap; }
+        .tab.active { background: white; color: #667eea; border-bottom: 3px solid #667eea; }
+        .content { padding: 30px; }
+        .tab-content { display: none; animation: fadeIn 0.5s; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #495057; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 1em; }
+        .btn { padding: 10px 18px; border: none; border-radius: 8px; font-size: 0.95em; font-weight: 600; cursor: pointer; display: inline-block; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; text-align: left; }
+        td { padding: 12px; border-bottom: 1px solid #e9ecef; }
+        .badge { padding: 5px 10px; border-radius: 20px; font-size: 0.85em; font-weight: 600; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; justify-content:center; align-items:center; }
+        .modal.active { display:flex; }
+        .modal-content { background:white; padding:20px; border-radius:12px; max-width:720px; width:95%; max-height:90vh; overflow:auto; }
+        .ai-chat-button { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; font-size: 1.5em; cursor: pointer; z-index: 999; }
+        .ai-chat-widget { position: fixed; bottom: 100px; right: 30px; width: 380px; height: 520px; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); display: none; flex-direction: column; z-index: 999; }
+        .ai-chat-widget.active { display:flex; }
+        .ai-chat-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px; border-radius: 15px 15px 0 0; font-weight: 600; }
+        .ai-chat-messages { flex:1; overflow-y:auto; padding:12px; }
+        .ai-message { margin-bottom:10px; padding:10px; border-radius:8px; max-width:80%; }
+        .ai-message.user { background:#e9ecef; margin-left:auto; }
+        .ai-message.bot { background:#667eea; color:white; }
+        .ai-chat-input { display:flex; padding:12px; border-top:1px solid #e9ecef; }
+        .ai-chat-input input { flex:1; padding:10px; border:2px solid #e9ecef; border-radius:20px; margin-right:10px; }
+        .admin-badge { background:#fff; color:#667eea; padding:6px 10px; border-radius:12px; font-weight:700; }
+        @media (max-width:768px) { .header h1 { font-size:1.2em } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🏥 Clinic Management System</h1>
+                <div style="font-size:0.9em; opacity:0.9">Production-Ready Demo — Admins, Printable Invoices, Searchable Sales & smarter AI</div>
+            </div>
+            <div class="header-right">
+                <div id="loginStatus">Not logged in</div>
+                <button class="btn btn-primary" onclick="openLoginModal()" id="loginBtn">Login</button>
+                <button class="btn btn-danger" onclick="logoutUser()" id="logoutBtn" style="display:none">Logout</button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+            <button class="tab" onclick="switchTab('medicines')">💊 Medicines</button>
+            <button class="tab" onclick="switchTab('billing')">💰 Billing</button>
+            <button class="tab" onclick="switchTab('stock')">📦 Stock Management</button>
+            <button class="tab" onclick="switchTab('reports')">📈 Reports</button>
+            <button class="tab" onclick="switchTab('admin')">🔑 Admin</button>
+        </div>
+
+        <div class="content">
+            <!-- Dashboard Tab -->
+            <div id="dashboard" class="tab-content active">
+                <h2 style="color:#667eea; margin-bottom:12px">📊 Dashboard Overview</h2>
+                <div class="dashboard-cards">
+                    <div class="card"><h3>Total Medicines</h3><div class="number" id="totalMedicines">0</div></div>
+                    <div class="card" style="background:linear-gradient(135deg,#56ab2f 0%,#a8e063 100%)"><h3>In Stock</h3><div class="number" id="inStockMedicines">0</div></div>
+                    <div class="card" style="background:linear-gradient(135deg,#eb3349 0%,#f45c43 100%)"><h3>Low Stock</h3><div class="number" id="lowStockMedicines">0</div></div>
+                    <div class="card" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%)"><h3>Today's Sales</h3><div class="number">₹<span id="todaySales">0</span></div></div>
+                </div>
+                <div class="table-container">
+                    <h3 style="margin-bottom:8px">Low Stock Alert</h3>
+                    <table><thead><tr><th>Medicine Name</th><th>Current Stock</th><th>Reorder Level</th><th>Status</th></tr></thead>
+                    <tbody id="lowStockTable"><tr><td colspan="4" style="text-align:center">No low stock items</td></tr></tbody></table>
+                </div>
+            </div>
+
+            <!-- Medicines Tab -->
+            <div id="medicines" class="tab-content">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+                    <h2 style="color:#667eea">💊 Medicine Inventory</h2>
+                    <div>
+                        <button class="btn btn-primary" onclick="openAddMedicineModal()">➕ Add Medicine</button>
+                    </div>
+                </div>
+                <div class="search-box"><input type="text" id="medicineSearch" placeholder="🔍 Search medicines..." onkeyup="searchMedicines()"></div>
+                <div class="table-container" style="margin-top:12px">
+                    <table><thead><tr><th>Name</th><th>Generic</th><th>Type</th><th>Price</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="medicineTable"></tbody></table>
+                </div>
+            </div>
+
+            <!-- Billing Tab -->
+            <div id="billing" class="tab-content">
+                <h2 style="color:#667eea; margin-bottom:12px">💰 Create Bill</h2>
+                <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px">
+                    <div>
+                        <div class="form-group"><label>Select Medicine</label><select id="billMedicine" onchange="updateBillMedicineDetails()"><option value="">-- Select Medicine --</option></select></div>
+                        <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                            <div class="form-group"><label>Quantity (Packs)</label><input type="number" id="billQuantity" step="0.5" min="0.5" placeholder="e.g., 1.5"></div>
+                            <div class="form-group"><label>Price per Pack</label><input type="number" id="billPrice" readonly></div>
+                        </div>
+                        <button class="btn btn-success" onclick="addToCart()">🛒 Add to Cart</button>
+                        <div id="cart" style="margin-top:20px"><h3>Shopping Cart</h3><div id="cartItems"></div></div>
+                    </div>
+                    <div>
+                        <div style="background:#f8f9fa; padding:16px; border-radius:10px">
+                            <h3 style="margin-bottom:12px">Bill Summary</h3>
+                            <div style="margin-bottom:8px"><span>Subtotal:</span><span style="float:right;font-weight:600">₹<span id="subtotal">0.00</span></span></div>
+                            <div style="margin-bottom:8px;color:#28a745"><span>Discount (10%):</span><span style="float:right;font-weight:600">-₹<span id="discount">0.00</span></span></div>
+                            <hr style="margin:12px 0">
+                            <div style="font-size:1.2em; font-weight:bold; color:#667eea"><span>Total:</span><span style="float:right">₹<span id="total">0.00</span></span></div>
+                            <div class="form-group" style="margin-top:12px"><label>Payment Method</label><select id="paymentMethod"><option value="cash">Cash</option><option value="card">Card</option><option value="upi">UPI</option><option value="other">Other</option></select></div>
+                            <button class="btn btn-primary" onclick="completeSale()" style="width:100%; margin-top:8px">💳 Complete Sale</button>
+                            <button class="btn btn-danger" onclick="clearCart()" style="width:100%; margin-top:8px">🗑️ Clear Cart</button>
+                            <div id="postSaleActions" style="margin-top:10px; display:none"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Management Tab -->
+            <div id="stock" class="tab-content">
+                <h2 style="color:#667eea; margin-bottom:12px">📦 Stock Management</h2>
+                <div class="stock-action" style="margin-bottom:12px; padding:12px">
+                    <h3 style="margin-bottom:10px">Add/Remove Stock</h3>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+                        <div class="form-group"><label>Select Medicine</label><select id="stockMedicine" onchange="updateStockDetails()"><option value="">-- Select Medicine --</option></select></div>
+                        <div class="form-group"><label>Current Stock</label><input type="text" id="currentStock" readonly></div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px">
+                        <div class="form-group"><label>Quantity (Packs)</label><input type="number" id="stockQuantity" step="0.5" placeholder="e.g., 10.5"></div>
+                        <div class="form-group"><label>Action Type</label><select id="stockAction"><option value="add">Add Stock (IN)</option><option value="remove">Remove Stock (OUT)</option></select></div>
+                    </div>
+                    <div class="form-group"><label>Notes</label><textarea id="stockNotes" rows="2" placeholder="Purchase from supplier, Expired, etc."></textarea></div>
+                    <button class="btn btn-primary" onclick="updateStock()">✅ Update Stock</button>
+                </div>
+                <div class="table-container"><h3 style="margin-bottom:8px">Stock Movement History</h3>
+                    <table><thead><tr><th>Date/Time</th><th>Medicine</th><th>Action</th><th>Quantity</th><th>Notes</th></tr></thead><tbody id="stockHistoryTable"></tbody></table>
+                </div>
+            </div>
+
+            <!-- Reports Tab -->
+            <div id="reports" class="tab-content">
+                <h2 style="color:#667eea; margin-bottom:12px">📈 Reports & Analytics</h2>
+                <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px">
+                    <div class="form-group"><label>From (date-time)</label><input type="datetime-local" id="reportFromDateTime"></div>
+                    <div class="form-group"><label>To (date-time)</label><input type="datetime-local" id="reportToDateTime"></div>
+                    <div class="form-group"><label>Or From Date (fallback)</label><input type="date" id="reportFromDate"></div>
+                    <div class="form-group"><label>Or To Date (fallback)</label><input type="date" id="reportToDate"></div>
+                </div>
+                <div style="display:flex; gap:8px; margin-bottom:12px"><button class="btn btn-primary" onclick="generateReport()">📊 Generate Report</button><button class="btn" onclick="showAllSales()">🔁 Show All Sales</button>
+                <div style="margin-left:auto"><input type="text" id="reportSearch" placeholder="Search by Invoice / Medicine / Payment" onkeyup="searchReportTable()" style="padding:8px; border-radius:8px; border:1px solid #e9ecef"></div></div>
+
+                <div id="reportResults" style="margin-top:12px; display:none">
+                    <div class="dashboard-cards">
+                        <div class="card"><h3>Total Sales</h3><div class="number">₹<span id="reportTotalSales">0</span></div></div>
+                        <div class="card" style="background:linear-gradient(135deg,#56ab2f 0%,#a8e063 100%)"><h3>Total Transactions</h3><div class="number" id="reportTransactions">0</div></div>
+                        <div class="card" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%)"><h3>Average Bill</h3><div class="number">₹<span id="reportAvgBill">0</span></div></div>
+                    </div>
+                    <div class="table-container" style="margin-top:12px"><h3 style="margin-bottom:8px">Sales Transactions</h3>
+                        <table><thead><tr><th>Date/Time</th><th>Invoice No.</th><th>Items</th><th>Subtotal</th><th>Discount</th><th>Total</th><th>Payment</th><th>Actions</th></tr></thead>
+                        <tbody id="reportTable"></tbody></table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Tab -->
+            <div id="admin" class="tab-content">
+                <h2 style="color:#667eea; margin-bottom:12px">🔑 Admin Management</h2>
+                <div style="display:flex; gap:12px; margin-bottom:12px">
+                    <div style="flex:1; background:#f8f9fa; padding:12px; border-radius:10px">
+                        <h3>Current User</h3>
+                        <div id="currentUserBox">Not logged in</div>
+                    </div>
+                    <div style="width:360px; background:#f8f9fa; padding:12px; border-radius:10px">
+                        <h3>Create Junior Admin (Head only)</h3>
+                        <div class="form-group"><label>Username</label><input id="newAdminUsername"></div>
+                        <div class="form-group"><label>Password</label><input id="newAdminPassword" type="password"></div>
+                        <button class="btn btn-primary" onclick="createAdmin()">➕ Create Admin</button>
+                    </div>
+                </div>
+                <div style="background:#fff; padding:12px; border-radius:10px">
+                    <h3>Admins List</h3>
+                    <table><thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead><tbody id="adminsTable"></tbody></table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Medicine Modal -->
+    <div id="addMedicineModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; align-items:center"><h2>➕ Add New Medicine</h2><button class="btn" onclick="closeAddMedicineModal()">✖</button></div><div id="medicineAlert"></div>
+        <form onsubmit="addMedicine(event)">
+            <div class="form-group"><label>Medicine Name *</label><input type="text" id="medicineName" required></div>
+            <div class="form-group"><label>Generic Name *</label><input type="text" id="medicineGeneric" required></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                <div class="form-group"><label>Type *</label><select id="medicineType" required><option value="">-- Select --</option><option>Tablet</option><option>Capsule</option><option>Syrup</option><option>Injection</option><option>Ointment</option><option>Drops</option><option>Inhaler</option></select></div>
+                <div class="form-group"><label>Strength</label><input id="medicineStrength"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                <div class="form-group"><label>Price per Pack (₹) *</label><input type="number" id="medicinePrice" step="0.01" required></div>
+                <div class="form-group"><label>Quantity per Pack</label><input type="number" id="medicineQtyPerPack" value="10"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+                <div class="form-group"><label>Initial Stock (Packs) *</label><input type="number" id="medicineStock" step="0.5" required></div>
+                <div class="form-group"><label>Reorder Level (Packs)</label><input type="number" id="medicineReorder" value="10"></div>
+            </div>
+            <div class="form-group"><label>Manufacturer</label><input id="medicineManufacturer"></div>
+            <div class="form-group"><label>Notes</label><textarea id="medicineNotes" rows="3"></textarea></div>
+            <button type="submit" class="btn btn-primary" style="width:100%">💾 Save Medicine</button>
+        </form>
+    </div></div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content:space-between; align-items:center"><h2>🔐 Login</h2><button class="btn" onclick="closeLoginModal()">✖</button></div>
+        <div id="loginAlert"></div>
+        <form onsubmit="loginUser(event)">
+            <div class="form-group"><label>Username</label><input id="loginUsername" required></div>
+            <div class="form-group"><label>Password</label><input id="loginPassword" type="password" required></div>
+            <button class="btn btn-primary" type="submit">Login</button>
+        </form>
+        <div style="margin-top:10px; font-size:0.9em; color:#666">Default demo accounts: <strong>head/headpass</strong> (Head Admin), <strong>junior1/junior1</strong>, <strong>junior2/junior2</strong> (Junior Admins)</div>
+    </div></div>
+
+    <!-- AI Chat Button & Widget -->
+    <button class="ai-chat-button" onclick="toggleAIChat()">🤖</button>
+    <div id="aiChatWidget" class="ai-chat-widget"><div class="ai-chat-header">🤖 AI Assistant - Clinic Management</div>
+        <div class="ai-chat-messages" id="aiChatMessages"><div class="ai-message bot">Hello! I'm your AI assistant. Try commands like:<br>• "low stock"<br>• "show sales from 2025-11-01 09:00 to 2025-11-01 18:00"<br>• "print invoice INV-20251105-0001"<br>• "create admin alice alicepass" (head only)<br>• "whoami" or "list admins"</div></div>
+        <div class="ai-chat-input"><input type="text" id="aiChatInput" placeholder="Ask or type a command..." onkeypress="handleAIChatEnter(event)"><button class="btn btn-primary" onclick="sendAIMessage()">Send</button></div>
+    </div>
+
+    <script>
+        /***** Data Storage (demo only - client-side) *****/
+        let medicines = [
+            { id:1, name:'Paracetamol', generic:'Acetaminophen', type:'Tablet', strength:'500mg', price:50, stock:100, reorderLevel:20, qtyPerPack:10, manufacturer:'PharmaCo' },
+            { id:2, name:'Amoxicillin', generic:'Amoxicillin', type:'Capsule', strength:'250mg', price:120, stock:15, reorderLevel:20, qtyPerPack:10, manufacturer:'MediLife' },
+            { id:3, name:'Cough Syrup', generic:'Dextromethorphan', type:'Syrup', strength:'100ml', price:85, stock:8, reorderLevel:15, qtyPerPack:1, manufacturer:'HealthCare Ltd' }
+        ];
+
+        // Users: head + juniors (demo). In production move to server & hashed passwords.
+        let users = [
+            { id:1, username:'head', password:'headpass', role:'head' },
+            { id:2, username:'junior1', password:'junior1', role:'junior' },
+            { id:3, username:'junior2', password:'junior2', role:'junior' }
+        ];
+
+        let sales = [];
+        let stockHistory = [];
+        let cart = [];
+        let currentUser = null; // {username, role}
+
+        // Persist basic state in localStorage for demo convenience
+        function persistState(){ localStorage.setItem('cms_medicines', JSON.stringify(medicines)); localStorage.setItem('cms_sales', JSON.stringify(sales)); localStorage.setItem('cms_stockHistory', JSON.stringify(stockHistory)); localStorage.setItem('cms_users', JSON.stringify(users)); localStorage.setItem('cms_currentUser', JSON.stringify(currentUser)); }
+        function loadState(){ try{ const m = JSON.parse(localStorage.getItem('cms_medicines')); if(Array.isArray(m)) medicines = m; const s = JSON.parse(localStorage.getItem('cms_sales')); if(Array.isArray(s)) sales = s; const h = JSON.parse(localStorage.getItem('cms_stockHistory')); if(Array.isArray(h)) stockHistory = h; const u = JSON.parse(localStorage.getItem('cms_users')); if(Array.isArray(u)) users = u; const cu = JSON.parse(localStorage.getItem('cms_currentUser')); if(cu) currentUser = cu; }catch(e){ console.warn('Could not load state', e);} }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function(){ loadState(); updateDashboard(); loadMedicineTable(); populateMedicineDropdowns(); loadStockHistory(); renderAdminsTable(); updateLoginUI();
+            const nowIso = new Date().toISOString().slice(0,16);
+            document.getElementById('reportToDateTime').value = nowIso;
+            const lastMonth = new Date(); lastMonth.setMonth(lastMonth.getMonth()-1);
+            document.getElementById('reportFromDateTime').value = lastMonth.toISOString().slice(0,16);
+        });
+
+        /***** Tab Switching (small fix for event) *****/
+        function switchTab(tabName){ document.querySelectorAll('.tab-content').forEach(tab=>tab.classList.remove('active')); document.querySelectorAll('.tab').forEach(btn=>btn.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            // add active class to clicked button: find button by text? simplified: find .tab with onclick attribute matching and set active based on index
+            const tabs = Array.from(document.querySelectorAll('.tab'));
+            tabs.forEach(t=>{ if(t.getAttribute('onclick') && t.getAttribute('onclick').includes(tabName)){ t.classList.add('active'); }});
+        }
+
+        /***** Dashboard Functions *****/
+        function updateDashboard(){ const totalMedicines = medicines.length; const inStockMedicines = medicines.filter(m=>m.stock>m.reorderLevel).length; const lowStockMedicines = medicines.filter(m=>m.stock<=m.reorderLevel).length; const today = new Date().toDateString(); const todaySales = sales.filter(s=>new Date(s.date).toDateString()===today).reduce((sum,s)=>sum+s.total,0);
+            document.getElementById('totalMedicines').textContent = totalMedicines; document.getElementById('inStockMedicines').textContent = inStockMedicines; document.getElementById('lowStockMedicines').textContent = lowStockMedicines; document.getElementById('todaySales').textContent = todaySales.toFixed(2);
+            const lowStockTable = document.getElementById('lowStockTable'); const lowStock = medicines.filter(m=>m.stock<=m.reorderLevel);
+            if(lowStock.length===0){ lowStockTable.innerHTML='<tr><td colspan="4" style="text-align:center">No low stock items 🎉</td></tr>'; } else { lowStockTable.innerHTML = lowStock.map(m=>`<tr><td>${m.name}</td><td>${m.stock} packs</td><td>${m.reorderLevel} packs</td><td><span class="badge badge-danger">⚠️ Low Stock</span></td></tr>`).join(''); }
+            persistState(); }
+
+        /***** Medicines UI *****/
+        function loadMedicineTable(){ const table = document.getElementById('medicineTable'); if(medicines.length===0){ table.innerHTML='<tr><td colspan="7" style="text-align:center">No medicines</td></tr>'; return; } table.innerHTML = medicines.map(m=>`<tr><td>${m.name}</td><td>${m.generic}</td><td>${m.type}</td><td>₹${m.price}</td><td>${m.stock} packs</td><td><span class="badge ${m.stock>m.reorderLevel? 'badge-success':'badge-danger'}">${m.stock>m.reorderLevel? '✅ In Stock':'⚠️ Low Stock'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="editMedicine(${m.id})">✏️</button><button class="btn btn-danger" onclick="deleteMedicine(${m.id})">🗑️</button></div></td></tr>`).join(''); }
+
+        function searchMedicines(){ const term = document.getElementById('medicineSearch').value.toLowerCase(); const table = document.getElementById('medicineTable'); const filtered = medicines.filter(m=>m.name.toLowerCase().includes(term) || m.generic.toLowerCase().includes(term)); if(filtered.length===0){ table.innerHTML='<tr><td colspan="7" style="text-align:center">No results</td></tr>'; return; } table.innerHTML = filtered.map(m=>`<tr><td>${m.name}</td><td>${m.generic}</td><td>${m.type}</td><td>₹${m.price}</td><td>${m.stock} packs</td><td><span class="badge ${m.stock>m.reorderLevel? 'badge-success':'badge-danger'}">${m.stock>m.reorderLevel? '✅ In Stock':'⚠️ Low Stock'}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-primary" onclick="editMedicine(${m.id})">✏️</button><button class="btn btn-danger" onclick="deleteMedicine(${m.id})">🗑️</button></div></td></tr>`).join(''); }
+
+        function openAddMedicineModal(){ if(!requireLogin()) return; document.getElementById('addMedicineModal').classList.add('active'); document.getElementById('medicineAlert').innerHTML=''; }
+        function closeAddMedicineModal(){ document.getElementById('addMedicineModal').classList.remove('active'); document.querySelector('#addMedicineModal form').reset(); }
+
+        function addMedicine(e){ e.preventDefault(); if(!requireLogin()) return; const newMedicine = { id: medicines.length>0? Math.max(...medicines.map(m=>m.id))+1:1, name:document.getElementById('medicineName').value, generic:document.getElementById('medicineGeneric').value, type:document.getElementById('medicineType').value, strength:document.getElementById('medicineStrength').value, price:parseFloat(document.getElementById('medicinePrice').value), stock:parseFloat(document.getElementById('medicineStock').value), reorderLevel:parseFloat(document.getElementById('medicineReorder').value), qtyPerPack:parseInt(document.getElementById('medicineQtyPerPack').value), manufacturer:document.getElementById('medicineManufacturer').value, notes:document.getElementById('medicineNotes').value };
+            medicines.push(newMedicine); stockHistory.push({ date:new Date(), medicine:newMedicine.name, action:'Initial Stock', quantity:newMedicine.stock, notes:'Medicine added to inventory' }); document.getElementById('medicineAlert').innerHTML='<div style="padding:8px;background:#d4edda;border-left:4px solid #28a745; border-radius:6px">✅ Medicine added successfully!</div>';
+            setTimeout(()=>{ closeAddMedicineModal(); loadMedicineTable(); updateDashboard(); populateMedicineDropdowns(); },900); }
+
+        function editMedicine(id){ if(!requireLogin()) return alert('Editing is available in production version.'); alert('Edit placeholder - in production: open pre-filled edit modal.'); }
+        function deleteMedicine(id){ if(!requireLogin()) return; if(!confirm('Are you sure you want to delete this medicine?')) return; medicines = medicines.filter(m=>m.id!==id); loadMedicineTable(); updateDashboard(); populateMedicineDropdowns(); }
+
+        /***** Billing Functions (with Print) *****/
+        function populateMedicineDropdowns(){ const billSelect = document.getElementById('billMedicine'); const stockSelect = document.getElementById('stockMedicine'); const options = medicines.map(m=>`<option value="${m.id}">${m.name} (₹${m.price}) - ${m.stock} packs available</option>`).join(''); billSelect.innerHTML = '<option value="">-- Select Medicine --</option>'+options; stockSelect.innerHTML = '<option value="">-- Select Medicine --</option>'+options; }
+
+        function updateBillMedicineDetails(){ const id = parseInt(document.getElementById('billMedicine').value); if(id){ const med = medicines.find(m=>m.id===id); document.getElementById('billPrice').value = med.price; } else document.getElementById('billPrice').value=''; }
+
+        function addToCart(){ if(!requireLogin()) return; const id = parseInt(document.getElementById('billMedicine').value); const qty = parseFloat(document.getElementById('billQuantity').value); if(!id || !qty || qty<=0) return alert('Please select medicine and enter valid quantity'); const med = medicines.find(m=>m.id===id); if(qty>med.stock) return alert(`Only ${med.stock} packs available in stock!`); const existing = cart.find(c=>c.medicineId===id); if(existing) existing.quantity += qty; else cart.push({ medicineId:id, name:med.name, price:med.price, quantity:qty }); updateCartDisplay(); document.getElementById('billMedicine').value=''; document.getElementById('billQuantity').value=''; document.getElementById('billPrice').value=''; }
+
+        function updateCartDisplay(){ const box = document.getElementById('cartItems'); if(cart.length===0){ box.innerHTML = '<p style="color:#6c757d; text-align:center; padding:12px">Cart is empty</p>'; } else { box.innerHTML = cart.map((item,i)=>`<div style="background:#f8f9fa;padding:8px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center"><div><strong>${item.name}</strong><br><small>${item.quantity} packs × ₹${item.price}</small></div><div style="text-align:right"><div style="font-weight:600">₹${(item.quantity*item.price).toFixed(2)}</div><button class="btn btn-danger" onclick="removeFromCart(${i})" style="margin-top:6px">🗑️</button></div></div>`).join(''); }
+            const subtotal = cart.reduce((s,i)=>s+(i.quantity*i.price),0); const discount = subtotal*0.10; const total = subtotal - discount; document.getElementById('subtotal').textContent = subtotal.toFixed(2); document.getElementById('discount').textContent = discount.toFixed(2); document.getElementById('total').textContent = total.toFixed(2); }
+
+        function removeFromCart(i){ cart.splice(i,1); updateCartDisplay(); }
+        function clearCart(){ if(!requireLogin()) return; if(confirm('Clear all items from cart?')){ cart=[]; updateCartDisplay(); } }
+
+        function completeSale(){ if(!requireLogin()) return; if(cart.length===0) return alert('Cart is empty!'); const subtotal = cart.reduce((s,i)=>s+(i.quantity*i.price),0); const discount = subtotal*0.10; const total = subtotal - discount; const paymentMethod = document.getElementById('paymentMethod').value; const today = new Date(); const invoiceNo = `INV-${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}-${String(sales.length+1).padStart(4,'0')}`;
+            const sale = { id: sales.length+1, invoiceNo: invoiceNo, date: new Date(), items: JSON.parse(JSON.stringify(cart)), subtotal: subtotal, discount: discount, total: total, paymentMethod: paymentMethod, user: currentUser? currentUser.username: 'guest' };
+            sales.push(sale);
+            cart.forEach(item=>{ const med = medicines.find(m=>m.id===item.medicineId); med.stock -= item.quantity; stockHistory.push({ date:new Date(), medicine:med.name, action:'Sale', quantity:item.quantity, notes:`Invoice: ${invoiceNo}` }); });
+            // Persist and update UI
+            updateDashboard(); loadMedicineTable(); populateMedicineDropdowns(); loadStockHistory(); persistState();
+            // Show alert with Print option
+            alert(`✅ Sale completed!\nInvoice: ${invoiceNo}\nTotal: ₹${total.toFixed(2)}`);
+            const psa = document.getElementById('postSaleActions'); psa.style.display='block'; psa.innerHTML = `<button class="btn btn-primary" onclick="printInvoice('${invoiceNo}')">🖨️ Print Invoice (${invoiceNo})</button> <button class="btn" onclick="showInvoicePreview('${invoiceNo}')">🔍 Preview</button>`;
+            cart=[]; updateCartDisplay(); }
+
+        // Print / Preview invoice
+        function printInvoice(invoiceNo){ const sale = sales.find(s=>s.invoiceNo===invoiceNo); if(!sale) return alert('Invoice not found'); const w = window.open('','_blank'); const styles = `<style>body{font-family:Arial,Helvetica,sans-serif;padding:20px;} .inv-header{display:flex;justify-content:space-between;align-items:center;} table{width:100%;border-collapse:collapse;} th,td{padding:8px;border:1px solid #ddd;text-align:left}</style>`; let itemsHtml = sale.items.map(it=>`<tr><td>${it.name}</td><td>${it.quantity}</td><td>₹${it.price.toFixed(2)}</td><td>₹${(it.quantity*it.price).toFixed(2)}</td></tr>`).join(''); const html = `<html><head><title>Invoice ${invoiceNo}</title>${styles}</head><body><div class="inv-header"><h2>Clinic Invoice</h2><div><strong>Invoice:</strong> ${invoiceNo}<br><strong>Date:</strong> ${new Date(sale.date).toLocaleString()}<br><strong>By:</strong> ${sale.user}</div></div><hr><table><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Amount</th></tr></thead><tbody>${itemsHtml}</tbody></table><hr><div style="text-align:right"><strong>Subtotal:</strong> ₹${sale.subtotal.toFixed(2)}<br><strong>Discount:</strong> -₹${sale.discount.toFixed(2)}<br><strong>Total:</strong> ₹${sale.total.toFixed(2)}</div><div style="margin-top:20px; text-align:center"><button onclick="window.print()" style="padding:10px 14px; font-size:16px">Print</button></div></body></html>`; w.document.write(html); w.document.close(); }
+
+        function showInvoicePreview(invoiceNo){ printInvoice(invoiceNo); }
+
+        /***** Stock history *****/
+        function updateStockDetails(){ const id = parseInt(document.getElementById('stockMedicine').value); if(id){ const med = medicines.find(m=>m.id===id); document.getElementById('currentStock').value = `${med.stock} packs`; } else document.getElementById('currentStock').value=''; }
+        function updateStock(){ if(!requireLogin()) return; const id = parseInt(document.getElementById('stockMedicine').value); const qty = parseFloat(document.getElementById('stockQuantity').value); const action = document.getElementById('stockAction').value; const notes = document.getElementById('stockNotes').value; if(!id || !qty || qty<=0) return alert('Please select medicine and enter valid quantity'); const med = medicines.find(m=>m.id===id); if(action==='add'){ med.stock += qty; stockHistory.push({ date:new Date(), medicine:med.name, action:'Stock IN', quantity:qty, notes:notes||'-' }); } else { if(qty>med.stock) return alert('Cannot remove more stock than available!'); med.stock -= qty; stockHistory.push({ date:new Date(), medicine:med.name, action:'Stock OUT', quantity:qty, notes:notes||'-' }); }
+            alert(`✅ Stock updated: ${med.name}: ${med.stock} packs`); document.getElementById('stockMedicine').value=''; document.getElementById('stockQuantity').value=''; document.getElementById('currentStock').value=''; document.getElementById('stockNotes').value=''; updateDashboard(); loadMedicineTable(); populateMedicineDropdowns(); loadStockHistory(); persistState(); }
+
+        function loadStockHistory(){ const table = document.getElementById('stockHistoryTable'); if(stockHistory.length===0){ table.innerHTML='<tr><td colspan="5" style="text-align:center">No stock movements yet</td></tr>'; return; } table.innerHTML = stockHistory.slice().reverse().map(h=>`<tr><td>${new Date(h.date).toLocaleString()}</td><td>${h.medicine}</td><td><span class="badge ${h.action.includes('IN')? 'badge-success':'badge-warning'}">${h.action}</span></td><td>${h.quantity} packs</td><td>${h.notes}</td></tr>`).join(''); }
+
+        /***** Reports: search by date/time and filters *****/
+        function parseDateTimeInput(dtLocal){ if(!dtLocal) return null; // dtLocal is like 2025-11-05T13:45
+            try{ return new Date(dtLocal); }catch(e){ return null;} }
+
+        function generateReport(){ // prefer datetime-local inputs when present
+            let fromDT = parseDateTimeInput(document.getElementById('reportFromDateTime').value);
+            let toDT = parseDateTimeInput(document.getElementById('reportToDateTime').value);
+            // fallback to date inputs (start of day / end of day)
+            if(!fromDT){ const d=document.getElementById('reportFromDate').value; if(d) fromDT=new Date(d+'T00:00:00'); }
+            if(!toDT){ const d=document.getElementById('reportToDate').value; if(d) { toDT=new Date(d+'T23:59:59'); } }
+            if(!fromDT || !toDT){ alert('Please provide a valid From and To date/time (use datetime-local or date fallback)'); return; }
+            const filtered = sales.filter(s=>{ const sd = new Date(s.date); return sd>=fromDT && sd<=toDT; }); const totalSales = filtered.reduce((sum,s)=>sum+s.total,0); const avgBill = filtered.length>0? totalSales/filtered.length:0; document.getElementById('reportTotalSales').textContent = totalSales.toFixed(2); document.getElementById('reportTransactions').textContent = filtered.length; document.getElementById('reportAvgBill').textContent = avgBill.toFixed(2);
+            const reportTable = document.getElementById('reportTable'); if(filtered.length===0){ reportTable.innerHTML='<tr><td colspan="8" style="text-align:center">No transactions in this period</td></tr>'; } else { reportTable.innerHTML = filtered.map(s=>`<tr><td>${new Date(s.date).toLocaleString()}</td><td>${s.invoiceNo}</td><td>${s.items.length} items</td><td>₹${s.subtotal.toFixed(2)}</td><td>₹${s.discount.toFixed(2)}</td><td>₹${s.total.toFixed(2)}</td><td>${s.paymentMethod.toUpperCase()}</td><td><button class="btn" onclick="printInvoice('${s.invoiceNo}')">🖨️ Print</button></td></tr>`).join(''); }
+            document.getElementById('reportResults').style.display='block'; }
+
+        function showAllSales(){ if(sales.length===0){ alert('No sales yet'); return; } document.getElementById('reportResults').style.display='block'; document.getElementById('reportTotalSales').textContent = sales.reduce((s,x)=>s+x.total,0).toFixed(2); document.getElementById('reportTransactions').textContent = sales.length; document.getElementById('reportAvgBill').textContent = (sales.reduce((s,x)=>s+x.total,0)/Math.max(1,sales.length)).toFixed(2); const reportTable = document.getElementById('reportTable'); reportTable.innerHTML = sales.slice().reverse().map(s=>`<tr><td>${new Date(s.date).toLocaleString()}</td><td>${s.invoiceNo}</td><td>${s.items.length} items</td><td>₹${s.subtotal.toFixed(2)}</td><td>₹${s.discount.toFixed(2)}</td><td>₹${s.total.toFixed(2)}</td><td>${s.paymentMethod.toUpperCase()}</td><td><button class="btn" onclick="printInvoice('${s.invoiceNo}')">🖨️ Print</button></td></tr>`).join(''); }
+
+        function searchReportTable(){ const q = document.getElementById('reportSearch').value.toLowerCase(); const rows = Array.from(document.querySelectorAll('#reportTable tr')); if(!q){ rows.forEach(r=>r.style.display=''); return; } rows.forEach(r=>{ const text = r.textContent.toLowerCase(); r.style.display = text.includes(q)? '':'none'; }); }
+
+        /***** Admin management (client-side demo) *****/
+        function renderAdminsTable(){ const t = document.getElementById('adminsTable'); if(!users || users.length===0){ t.innerHTML='<tr><td colspan="3">No admins</td></tr>'; return; } t.innerHTML = users.map(u=>`<tr><td>${u.username}</td><td>${u.role}</td><td>${u.role==='head'? '' : `<button class="btn btn-danger" onclick="deleteAdmin('${u.username}')">Delete</button>`}</td></tr>`).join(''); document.getElementById('currentUserBox').innerHTML = currentUser? `${currentUser.username} <span class="admin-badge">${currentUser.role}</span>` : 'Not logged in'; }
+
+        function createAdmin(){ if(!requireLogin('head')) return; const uname = document.getElementById('newAdminUsername').value.trim(); const pass = document.getElementById('newAdminPassword').value.trim(); if(!uname || !pass) return alert('Please enter username and password'); if(users.find(u=>u.username===uname)) return alert('Username already exists'); users.push({ id: users.length+1, username: uname, password: pass, role: 'junior' }); persistState(); renderAdminsTable(); alert('Junior admin created: '+uname); document.getElementById('newAdminUsername').value=''; document.getElementById('newAdminPassword').value=''; }
+
+        function deleteAdmin(username){ if(!requireLogin('head')) return; if(!confirm('Delete admin '+username+'?')) return; users = users.filter(u=>u.username!==username); persistState(); renderAdminsTable(); }
+
+        /***** Simple Login (demo-only) *****/
+        function openLoginModal(){ document.getElementById('loginModal').classList.add('active'); document.getElementById('loginAlert').innerHTML=''; }
+        function closeLoginModal(){ document.getElementById('loginModal').classList.remove('active'); document.getElementById('loginUsername').value=''; document.getElementById('loginPassword').value=''; }
+
+        function loginUser(e){ e.preventDefault(); const u = document.getElementById('loginUsername').value.trim(); const p = document.getElementById('loginPassword').value; const found = users.find(x=>x.username===u && x.password===p); if(!found){ document.getElementById('loginAlert').innerHTML = '<div style="padding:8px;background:#f8d7da;border-left:4px solid #dc3545;border-radius:6px">Invalid credentials</div>'; return; } currentUser = { username: found.username, role: found.role }; persistState(); updateLoginUI(); renderAdminsTable(); closeLoginModal(); alert('Logged in as '+found.username); }
+
+        function logoutUser(){ if(!currentUser) return; if(!confirm('Logout?')) return; currentUser = null; persistState(); updateLoginUI(); renderAdminsTable(); }
+
+        function updateLoginUI(){ const s = document.getElementById('loginStatus'); const lb = document.getElementById('loginBtn'); const lob = document.getElementById('logoutBtn'); if(currentUser){ s.innerHTML = `Logged in as <strong>${currentUser.username}</strong> <span class="admin-badge">${currentUser.role}</span>`; lb.style.display='none'; lob.style.display='inline-block'; } else { s.innerHTML = 'Not logged in'; lb.style.display='inline-block'; lob.style.display='none'; } document.getElementById('currentUserBox').innerHTML = currentUser? `${currentUser.username} <span class="admin-badge">${currentUser.role}</span>` : 'Not logged in'; }
+
+        function requireLogin(minRole){ // minRole: undefined/all, 'junior' or 'head' required
+            if(!currentUser){ alert('Please login to continue'); openLoginModal(); return false; }
+            if(minRole==='head' && currentUser.role!=='head'){ alert('Head admin privileges required'); return false; }
+            return true;
+        }
+
+        /***** AI Assistant - enhanced rule-based handler (client-side demo) *****/
+        function toggleAIChat(){ document.getElementById('aiChatWidget').classList.toggle('active'); }
+        function handleAIChatEnter(e){ if(e.key==='Enter') sendAIMessage(); }
+
+        function sendAIMessage(){ const input = document.getElementById('aiChatInput'); const message = input.value.trim(); if(!message) return; const container = document.getElementById('aiChatMessages'); container.innerHTML += `<div class="ai-message user">${escapeHtml(message)}</div>`; setTimeout(()=>{ const response = aiHandle(message); container.innerHTML += `<div class="ai-message bot">${response}</div>`; container.scrollTop = container.scrollHeight; }, 300); input.value = ''; document.getElementById('aiChatMessages').scrollTop = document.getElementById('aiChatMessages').scrollHeight; }
+
+        function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        function aiHandle(msg){ const m = msg.toLowerCase(); // quick commands
+            // 1) low stock
+            if(m.includes('low stock') || m.includes('low-stock') || m.includes('lowstock')){ const low = medicines.filter(x=>x.stock<=x.reorderLevel); if(low.length===0) return '✅ All medicines are well stocked.'; return `⚠️ Low stock items (${low.length}): ${low.map(x=>x.name+ ' ('+x.stock+' packs)').join(', ')}`; }
+            // 2) sales from ... to ... (expect ISO-like or yyyy-mm-dd hh:mm)
+            const salesRange = /show sales from\s+([^\s]+\s*[^\s]*)\s+to\s+([^\s]+\s*[^\s]*)/i.exec(msg);
+            if(salesRange){ const fromStr = salesRange[1].replace(/['"]+/g,''); const toStr = salesRange[2].replace(/['"]+/g,''); const from = tryParseDate(fromStr); const to = tryParseDate(toStr); if(!from||!to) return 'Could not parse dates. Use format: YYYY-MM-DD or YYYY-MM-DD HH:MM or datetime-local (e.g., 2025-11-05T13:00).'; // produce report
+                const filtered = sales.filter(s=>{ const sd=new Date(s.date); return sd>=from && sd<=to; }); if(filtered.length===0) return `No sales found between ${from.toLocaleString()} and ${to.toLocaleString()}.`; const tot = filtered.reduce((s,x)=>s+x.total,0); return `Found ${filtered.length} sale(s) totalling ₹${tot.toFixed(2)} between ${from.toLocaleString()} and ${to.toLocaleString()}. You can preview or print specific invoice using: print invoice INV-...`; }
+            // 3) print invoice INV-...
+            const printMatch = /print invoice\s+([A-Za-z0-9\-\_]+)/i.exec(msg);
+            if(printMatch){ const inv = printMatch[1]; if(!sales.find(s=>s.invoiceNo===inv)) return `Invoice ${inv} not found.`; printInvoice(inv); return `🖨️ Opening printable invoice for ${inv} (check your popup blocker).`; }
+            // 4) create admin <username> <password> (head only)
+            const createMatch = /create admin\s+(\w+)\s+(\S+)/i.exec(msg);
+            if(createMatch){ const uname=createMatch[1]; const pass=createMatch[2]; if(!currentUser || currentUser.role!=='head') return 'Only head admin can create junior admins. Please login as head.'; if(users.find(u=>u.username===uname)) return 'Username already exists.'; users.push({ id: users.length+1, username:uname, password:pass, role:'junior' }); persistState(); renderAdminsTable(); return `✅ Junior admin ${uname} created.`; }
+            // 5) login <username> <password>
+            const loginMatch = /login\s+(\w+)\s+(\S+)/i.exec(msg);
+            if(loginMatch){ const uname=loginMatch[1]; const pass=loginMatch[2]; const found = users.find(u=>u.username===uname && u.password===pass); if(!found) return 'Invalid credentials'; currentUser = { username:found.username, role:found.role }; persistState(); updateLoginUI(); renderAdminsTable(); return `✅ Logged in as ${found.username} (${found.role}).`; }
+            // 6) whoami
+            if(m.trim()==='whoami') return currentUser? `You are ${currentUser.username} (${currentUser.role})` : 'Not logged in.';
+            // 7) list admins
+            if(m.includes('list admins') || m.includes('show admins')){ return users.map(u=>`${u.username} (${u.role})`).join(', '); }
+            // 8) help
+            if(m.includes('help')) return 'AI Help: supported commands: low stock, show sales from <from> to <to>, print invoice <INV-...>, create admin <user> <pass> (head only), login <user> <pass>, whoami, list admins.';
+            // 9) fallback info queries
+            if(m.includes('sales')||m.includes('revenue')){ const totalRevenue = sales.reduce((s,x)=>s+x.total,0); return `📊 Total sales: ${sales.length} transactions generating ₹${totalRevenue.toFixed(2)} revenue.`; }
+            if(m.includes('medicine')||m.includes('stock')){ return `There are ${medicines.length} medicines. Use 'low stock' to see low items.`; }
+            return `I heard: "${escapeHtml(msg)}". I can run commands (type 'help' for examples) or answer basic questions about the system.`; }
+
+        function tryParseDate(s){ // try several formats
+            if(!s) return null; // replace space with T if looks like 'YYYY-MM-DD HH:MM'
+            let out = null; try{ if(/\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)){ out = new Date(s.replace(' ','T')); } else if(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s)){ out = new Date(s); } else if(/\d{4}-\d{2}-\d{2}/.test(s)){ out = new Date(s+'T00:00:00'); } else { out = new Date(s); } if(isNaN(out)) return null; return out; }catch(e){ return null; } }
+
+        /***** Small utilities & export/import for demo *****/
+        function printState(){ console.log({medicines,sales,stockHistory,users,currentUser}); }
+
+        // Expose a couple functions to window for console debugging
+        window.printInvoice = printInvoice; window.showAllSales = showAllSales; window.printState=printState;
+
+    </script>
+</body>
+</html>
